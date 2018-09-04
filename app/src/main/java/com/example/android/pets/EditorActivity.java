@@ -15,6 +15,8 @@
  */
 package com.example.android.pets;
 
+import android.content.ContentValues;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
@@ -26,8 +28,10 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.Toast;
 
 import com.example.android.pets.data.PetContract.PetEntry;
+import com.example.android.pets.data.PetDbHelper;
 
 /**
  * Allows user to create a new pet or edit an existing one.
@@ -52,6 +56,8 @@ public class EditorActivity extends AppCompatActivity {
      */
     private int mGender = 0;
 
+    private PetDbHelper mDbHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,7 +69,41 @@ public class EditorActivity extends AppCompatActivity {
         mWeightEditText = (EditText) findViewById(R.id.edit_pet_weight);
         mGenderSpinner = (Spinner) findViewById(R.id.spinner_gender);
 
+        mDbHelper = new PetDbHelper(this);
+
         setupSpinner();
+    }
+
+    private void insertPet() {
+        String name = mNameEditText.getText().toString().trim();
+        String breed = mBreedEditText.getText().toString().trim();
+        int weight = Integer.parseInt(mWeightEditText.getText().toString().trim());
+
+        // Create a new map of values, where column names are the keys
+        ContentValues values = new ContentValues();
+        values.put(PetEntry.COLUMN_PET_NAME, name);
+        values.put(PetEntry.COLUMN_PET_BREED, breed);
+        values.put(PetEntry.COLUMN_PET_GENDER, mGender);
+        values.put(PetEntry.COLUMN_PET_WEIGHT, weight);
+
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        // Insert the new row, returning the primary key value of the new row
+        long newRowId = db.insert(PetEntry.TABLE_NAME, null, values);
+
+        CharSequence petSaved = "Pet saved with id: " + newRowId;
+        CharSequence petNotSaved = "Error saving pet";
+        int duration = Toast.LENGTH_LONG;
+        Toast saveStatus;
+        if(newRowId != -1){
+            saveStatus = Toast.makeText(this, petSaved, duration);
+        }
+        else{
+            saveStatus = Toast.makeText(this, petNotSaved, duration);
+        }
+
+        saveStatus.show();
+
     }
 
     /**
@@ -119,7 +159,8 @@ public class EditorActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                // Do nothing for now
+                insertPet();
+                finish();
                 return true;
             // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
