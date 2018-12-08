@@ -16,7 +16,7 @@
 package com.example.android.pets;
 
 import android.content.ContentValues;
-import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
@@ -64,10 +64,10 @@ public class EditorActivity extends AppCompatActivity {
         setContentView(R.layout.activity_editor);
 
         // Find all relevant views that we will need to read user input from
-        mNameEditText = (EditText) findViewById(R.id.edit_pet_name);
-        mBreedEditText = (EditText) findViewById(R.id.edit_pet_breed);
-        mWeightEditText = (EditText) findViewById(R.id.edit_pet_weight);
-        mGenderSpinner = (Spinner) findViewById(R.id.spinner_gender);
+        mNameEditText = findViewById(R.id.edit_pet_name);
+        mBreedEditText = findViewById(R.id.edit_pet_breed);
+        mWeightEditText = findViewById(R.id.edit_pet_weight);
+        mGenderSpinner = findViewById(R.id.spinner_gender);
 
         mDbHelper = new PetDbHelper(this);
 
@@ -86,16 +86,15 @@ public class EditorActivity extends AppCompatActivity {
         values.put(PetEntry.COLUMN_PET_GENDER, mGender);
         values.put(PetEntry.COLUMN_PET_WEIGHT, weight);
 
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
         // Insert the new row, returning the primary key value of the new row
-        long newRowId = db.insert(PetEntry.TABLE_NAME, null, values);
+        Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI,values);
 
-        CharSequence petSaved = "Pet saved with id: " + newRowId;
-        CharSequence petNotSaved = "Error saving pet";
+        CharSequence petSaved = getString(R.string.pet_saved);
+        CharSequence petNotSaved = getString(R.string.pet_not_saved);
         int duration = Toast.LENGTH_LONG;
         Toast saveStatus;
-        if(newRowId != -1){
+        if(newUri == null){
             saveStatus = Toast.makeText(this, petSaved, duration);
         }
         else{
