@@ -56,7 +56,6 @@ public class EditorActivity extends AppCompatActivity {
      */
     private int mGender = 0;
 
-    private PetDbHelper mDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +68,6 @@ public class EditorActivity extends AppCompatActivity {
         mWeightEditText = findViewById(R.id.edit_pet_weight);
         mGenderSpinner = findViewById(R.id.spinner_gender);
 
-        mDbHelper = new PetDbHelper(this);
 
         setupSpinner();
     }
@@ -95,10 +93,10 @@ public class EditorActivity extends AppCompatActivity {
         int duration = Toast.LENGTH_LONG;
         Toast saveStatus;
         if(newUri == null){
-            saveStatus = Toast.makeText(this, petSaved, duration);
+            saveStatus = Toast.makeText(this, petNotSaved, duration);
         }
         else{
-            saveStatus = Toast.makeText(this, petNotSaved, duration);
+            saveStatus = Toast.makeText(this, petSaved, duration);
         }
 
         saveStatus.show();
