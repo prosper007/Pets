@@ -1,19 +1,24 @@
 package com.example.android.pets;
 
 import android.app.LoaderManager;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.example.android.pets.data.PetContract.PetEntry;
 import com.example.android.pets.data.PetDbHelper;
@@ -46,15 +51,26 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
         mDbHelper = new PetDbHelper(this);
 
-        ListView displayView = findViewById(R.id.list_view_pet);
+        ListView petListView = findViewById(R.id.list_view_pet);
 
         mPetCursorAdapter = new PetCursorAdapter(this, null);
-        displayView.setAdapter(mPetCursorAdapter);
+        petListView.setAdapter(mPetCursorAdapter);
 
         View emptyView = findViewById(R.id.empty_view);
-        displayView.setEmptyView(emptyView);
+        petListView.setEmptyView(emptyView);
 
         getLoaderManager().initLoader(PET_LOADER, null, this);
+
+        petListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                Intent update = new Intent(CatalogActivity.this, EditorActivity.class);
+                Uri petUri = ContentUris.withAppendedId(PetEntry.CONTENT_URI, id);
+                update.setData(petUri);
+                startActivity(update);
+            }
+        });
+
     }
 
     private void insertData(){
@@ -68,6 +84,48 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
 // Insert the new row, returning the primary key value of the new row
         Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+    }
+
+    private void deleteAllPets() {
+        int rowsDeleted = getContentResolver().delete(PetEntry.CONTENT_URI, null, null);
+        Toast deleteStatus;
+        CharSequence deleted = getString(R.string.catalog_delete_all_pets_successful);
+        CharSequence notDeleted = getString(R.string.catalog_delete_all_pets_failed);
+        int duration = Toast.LENGTH_LONG;
+
+        if (rowsDeleted != 0) {
+            deleteStatus = Toast.makeText(this, deleted, duration);
+            deleteStatus.show();
+        } else {
+            deleteStatus = Toast.makeText(this, notDeleted, duration);
+            deleteStatus.show();
+        }
+    }
+
+    private void showDeleteConfirmationDialog() {
+        // Create an AlertDialog.Builder and set the message, and click listeners
+        // for the postivie and negative buttons on the dialog.
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.delete_all_dialog_msg);
+        builder.setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked the "Delete" button, so delete the pet.
+                deleteAllPets();
+            }
+        });
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked the "Cancel" button, so dismiss the dialog
+                // and continue editing the pet.
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        // Create and show the AlertDialog
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
     @Override
@@ -90,7 +148,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
-                // Do nothing for now
+                showDeleteConfirmationDialog();
                 return true;
         }
         return super.onOptionsItemSelected(item);
