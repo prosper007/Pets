@@ -8,6 +8,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -17,9 +19,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.Toast;
 
+import com.baoyz.swipemenulistview.SwipeMenu;
+import com.baoyz.swipemenulistview.SwipeMenuCreator;
+import com.baoyz.swipemenulistview.SwipeMenuItem;
+import com.baoyz.swipemenulistview.SwipeMenuListView;
 import com.example.android.pets.data.PetContract.PetEntry;
 import com.example.android.pets.data.PetDbHelper;
 
@@ -51,7 +56,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
         mDbHelper = new PetDbHelper(this);
 
-        ListView petListView = findViewById(R.id.list_view_pet);
+        SwipeMenuListView petListView = findViewById(R.id.list_view_pet);
 
         mPetCursorAdapter = new PetCursorAdapter(this, null);
         petListView.setAdapter(mPetCursorAdapter);
@@ -70,6 +75,48 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
                 startActivity(update);
             }
         });
+
+        SwipeMenuCreator creator = new SwipeMenuCreator() {
+
+            @Override
+            public void create(SwipeMenu menu) {
+                // create "open" item
+                SwipeMenuItem deleteItem = new SwipeMenuItem(
+                        getApplicationContext());
+                // set item background
+                deleteItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
+                        0x3F, 0x25)));
+                // set item width
+                deleteItem.setWidth(300);
+                // set item title
+                deleteItem.setTitle(getString(R.string.delete));
+                // set item title fontsize
+                deleteItem.setTitleSize(18);
+                // set item title font color
+                deleteItem.setTitleColor(Color.WHITE);
+                // add to menu
+                menu.addMenuItem(deleteItem);
+
+            }
+        };
+
+// set creator
+        petListView.setMenuCreator(creator);
+
+        petListView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
+                switch (index){
+                    case 0:
+                        showDeleteConfirmationDialog(position);
+                        break;
+                }
+                return false;
+            }
+        });
+
+        //petListView.setSwipeDirection(SwipeMenuListView.DIRECTION_LEFT);
+        petListView.setSwipeDirection(SwipeMenuListView.DIRECTION_LEFT);
 
     }
 
@@ -102,7 +149,31 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         }
     }
 
-    private void showDeleteConfirmationDialog() {
+    private void deletePet(int position){
+        Cursor cursor = mPetCursorAdapter.getCursor();
+        cursor.moveToPosition(position);
+        int idColumnIndex = cursor.getColumnIndex(PetEntry._ID);
+        long id = cursor.getLong(idColumnIndex);
+        Uri petUri = ContentUris.withAppendedId(PetEntry.CONTENT_URI, id);
+        if(petUri != null) {
+            int rowsDeleted = getContentResolver().delete(petUri, null, null);
+            Toast deleteStatus;
+            CharSequence deleted = getString(R.string.editor_delete_pet_successful);
+            CharSequence notDeleted = getString(R.string.editor_delete_pet_failed);
+            int duration = Toast.LENGTH_LONG;
+
+            if (rowsDeleted != 0) {
+                deleteStatus = Toast.makeText(this, deleted, duration);
+                deleteStatus.show();
+            } else {
+                deleteStatus = Toast.makeText(this, notDeleted, duration);
+                deleteStatus.show();
+            }
+        }
+
+    }
+
+    private void showDeleteALLConfirmationDialog() {
         // Create an AlertDialog.Builder and set the message, and click listeners
         // for the postivie and negative buttons on the dialog.
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -111,6 +182,32 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
             public void onClick(DialogInterface dialog, int id) {
                 // User clicked the "Delete" button, so delete the pet.
                 deleteAllPets();
+            }
+        });
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked the "Cancel" button, so dismiss the dialog
+                // and continue editing the pet.
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        // Create and show the AlertDialog
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+    }
+
+    private void showDeleteConfirmationDialog(final int position) {
+        // Create an AlertDialog.Builder and set the message, and click listeners
+        // for the postivie and negative buttons on the dialog.
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.delete_dialog_msg);
+        builder.setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked the "Delete" button, so delete the pet.
+                deletePet(position);
             }
         });
         builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
@@ -148,7 +245,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
-                showDeleteConfirmationDialog();
+                showDeleteALLConfirmationDialog();
                 return true;
         }
         return super.onOptionsItemSelected(item);
